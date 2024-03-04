@@ -15,6 +15,7 @@ SrwTest.cpp - here implemented test logic
 LockUtil.cpp - for switch between SRW/Push implementation - for use same code for both tests - i only swap import function pointers to own api and back
 of course last 2 files very windows specific
 
+```
 ---------------------------
 [ SRW ]
 ---------------------------
@@ -73,6 +74,6 @@ time = 1844
 03: 00022463
 02: 00061698
 01: 00302862
-
+```
 
 
