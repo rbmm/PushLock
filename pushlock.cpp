@@ -1,71 +1,11 @@
-#include <windows.h>
-#include <intrin.h>
+#include "stdafx.h"
 
 #pragma warning(disable : 4706)
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 
 #include "pushlock.h"
-
-#ifdef _WIN32
-
-enum {
-	WM_ALERT = WM_APP + 0x3d56
-};
-
-NTSTATUS
-(NTAPI * NtAlertThreadByThreadId)(
-						_In_ HANDLE ThreadId
-						);
-
-NTSTATUS
-(NTAPI * NtWaitForAlertByThreadId)(
-						 _In_ PVOID Address,
-						 _In_opt_ PLARGE_INTEGER Timeout
-						 );
-
-void WaitForAlertByThreadId_old()
-{
-	MSG msg;
-	GetMessageW(&msg, 0, WM_APP, WM_APP);
-}
-
-void AlertThreadByThreadId_old(ULONG_PTR ThreadId)
-{
-	PostThreadMessageW((ULONG)ThreadId, WM_APP, 0, 0);
-}
-
-void WaitForAlertByThreadId_new()
-{
-	NtWaitForAlertByThreadId(0, 0);
-}
-
-void AlertThreadByThreadId_new(ULONG_PTR ThreadId)
-{
-	NtAlertThreadByThreadId((HANDLE)ThreadId);
-}
-
-ULONG_PTR GetThreadId()
-{
-	return GetCurrentThreadId();
-}
-
-void (*WaitForAlertByThreadId)() = WaitForAlertByThreadId_old;
-void (*AlertThreadByThreadId)(ULONG_PTR ThreadId) = AlertThreadByThreadId_old;
-
-void CPushLock::InitPushLockApi()
-{
-	if (HMODULE hmod = GetModuleHandle(L"ntdll"))
-	{
-		if ((*(void**)&NtAlertThreadByThreadId = GetProcAddress(hmod, "NtAlertThreadByThreadId")) &&
-			(*(void**)&NtWaitForAlertByThreadId = GetProcAddress(hmod, "NtWaitForAlertByThreadId")))
-		{
-			WaitForAlertByThreadId = WaitForAlertByThreadId_new;
-			AlertThreadByThreadId = AlertThreadByThreadId_new;
-		}
-	}
-}
-#endif
+#include "lockutil.h"
 
 ULONG CPushLock::WaitBlock::SpinCount = 0x400;
 
@@ -74,7 +14,7 @@ inline void CPushLock::WaitBlock::Wake()
 	if (!InterlockedBitTestAndResetRelease(&Flags, BIT_SPINNING))
 	{
 		// thread begin wait
-		AlertThreadByThreadId(ThreadId);
+		NtAlertThreadByThreadId(ThreadId);
 	}
 }
 
@@ -117,7 +57,7 @@ bool CPushLock::EnterWithWait(ULONG_PTR CurrentValue, LONG Flags)
 {
 	WaitBlock wb;
 
-	wb.Flags = Flags, wb.ThreadId = GetThreadId();
+	wb.Flags = Flags, wb.ThreadId = (HANDLE)(ULONG_PTR)GetCurrentThreadId();
 
 	if (CurrentValue & FLAG_EXCLUSIVE)
 	{
@@ -157,7 +97,7 @@ bool CPushLock::EnterWithWait(ULONG_PTR CurrentValue, LONG Flags)
 
 	if (InterlockedBitTestAndResetAcquire(&wb.Flags, WaitBlock::BIT_SPINNING))
 	{
-		WaitForAlertByThreadId();
+		NtWaitForAlertByThreadId(this, 0);
 	}
 
 	// we enter
@@ -546,5 +486,4 @@ void CPushLock::ConvertExclusiveToShared()
 			// somebody begin wait
 		}
 	}
-
 }

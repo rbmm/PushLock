@@ -15,7 +15,7 @@ class CPushLock
 		};
 
 		WaitBlock* Next;
-		ULONG_PTR ThreadId;
+		HANDLE ThreadId;
 		LONG SC;
 		LONG Flags;
 
@@ -34,13 +34,11 @@ class CPushLock
 		FLAG_EXCLUSIVE = 1 << BIT_EXCLUSIVE,
 	};
 
-	ULONG_PTR Value;
+	ULONG_PTR Value = 0;
 
 	bool EnterWithWait(ULONG_PTR CurrentValue, LONG Flags);
 	void WakeExclusiveWaiter(WaitBlock* last, WaitBlock* prev, ULONG_PTR CurrentValue);
 public:
-
-	CPushLock() : Value(0) { }
 
 	void AcquireShared();
 	void AcquireExclusive();
@@ -52,6 +50,19 @@ public:
 	bool TryAcquireExclusive();
 
 	void ConvertExclusiveToShared();
-
-	static void InitPushLockApi();
 };
+
+VOID WINAPI ReleasePushLockExclusive(PSRWLOCK SRWLock);
+VOID WINAPI AcquirePushLockExclusive(PSRWLOCK SRWLock);
+VOID WINAPI ReleasePushLockShared(PSRWLOCK SRWLock);
+VOID WINAPI AcquirePushLockShared(PSRWLOCK SRWLock);
+VOID WINAPI ConvertPushLockExclusiveToShared(PSRWLOCK SRWLock);
+
+BOOL SwitchToPushLock();
+BOOL SwitchToSRWLock();
+
+EXTERN_C
+WINBASEAPI
+BOOLEAN 
+WINAPI
+RtlConvertSRWLockExclusiveToShared(_Inout_ PSRWLOCK SRWLock);
