@@ -9,10 +9,10 @@ after all itterations done - i show basic statistic - how many time take test an
 what was very unusual - my implementation is even have bit better perfomance compare microsoft. but may be my test not enough relevant and somebody can propose better ?
 
 
-pushlock.cpp - here all logic of custom lock is implemented. 
+- pushlock.cpp - here all logic of custom lock is implemented. 
 code used only 3 winapi calls GetCurrentThreadId, NtAlertThreadByThreadId, NtWaitForAlertByThreadId
-SrwTest.cpp - here implemented test logic
-LockUtil.cpp - for switch between SRW/Push implementation - for use same code for both tests - i only swap import function pointers to own api and back
+- SrwTest.cpp - here implemented test logic
+- LockUtil.cpp - for switch between SRW/Push implementation - for use same code for both tests - i only swap import function pointers to own api and back
 of course last 2 files very windows specific
 
 ```
