@@ -45,7 +45,22 @@ struct ThreadTestData
 
 		do 
 		{
-			if (RtlRandomEx(&Seed) & 1)
+			if (RtlRandomEx(&Seed) & 7)
+			{
+				AcquireSRWLockShared(&SRWLock);
+
+			__s:
+				ASSERT(_nOwnerId == 0);
+				LONG m = InterlockedIncrementNoFence(&_n);
+
+				DoSomeTask();
+
+				InterlockedDecrementNoFence(&_n);
+				ReleaseSRWLockShared(&SRWLock);
+
+				InterlockedIncrementNoFence(&_nSC[m - 1]);
+			}
+			else
 			{
 				AcquireSRWLockExclusive(&SRWLock);
 
@@ -61,28 +76,13 @@ struct ThreadTestData
 				ASSERT(_nOwnerId == MyId);
 				_nOwnerId = 0;
 
-				if (RtlRandomEx(&Seed) & 1)
+				if (!(RtlRandomEx(&Seed) & 3))
 				{
 					RtlConvertSRWLockExclusiveToShared(&SRWLock);
 					goto __s;
 				}
 
 				ReleaseSRWLockExclusive(&SRWLock);
-			}
-			else
-			{
-				AcquireSRWLockShared(&SRWLock);
-
-__s:
-				ASSERT(_nOwnerId == 0);
-				LONG m = InterlockedIncrementNoFence(&_n);
-
-				DoSomeTask();
-
-				InterlockedDecrementNoFence(&_n);
-				ReleaseSRWLockShared(&SRWLock);
-
-				InterlockedIncrementNoFence(&_nSC[m - 1]);
 			}
 
 		} while (--n);

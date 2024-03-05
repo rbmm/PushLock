@@ -6,6 +6,8 @@ if lock asquired in exclusive mode i in 50% just release it and in 50% transorm 
 inside lock i do some very basic tests (are lock exclusive or shared acquired) and collect stat - how many shared threads at once was inside lock
 after all itterations done - i show basic statistic - how many time take test and how many time N threads was inside lock at once (in shared mode of course)
 
+in another test i use 7/1 readers vs writers and 3/1 release exclusive vs convert to shared
+
 what was very unusual - my implementation is even have bit better perfomance compare microsoft. but may be my test not enough relevant and somebody can propose better ?
 
 
@@ -14,6 +16,9 @@ code used only 3 winapi calls GetCurrentThreadId, NtAlertThreadByThreadId, NtWai
 - SrwTest.cpp - here implemented test logic
 - LockUtil.cpp - for switch between SRW/Push implementation - for use same code for both tests - i only swap import function pointers to own api and back
 of course last 2 files very windows specific
+
+
+readers/writers 50/50
 
 ```
 ---------------------------
@@ -76,4 +81,62 @@ time = 1844
 01: 00302862
 ```
 
+readers/writers 7/1
+```
+---------------------------
+[ SRW ]
+---------------------------
+time = 937
 
+08: 00000076
+07: 00001059
+06: 00006655
+05: 00024981
+04: 00059601
+03: 00094590
+02: 00109438
+01: 00178689
+
+---------------------------
+[ Push ]
+---------------------------
+time = 640
+
+08: 00017843
+07: 00038308
+06: 00052835
+05: 00065732
+04: 00079165
+03: 00082202
+02: 00072758
+01: 00066347
+
+---------------------------
+[ Push ]
+---------------------------
+time = 640
+
+08: 00017881
+07: 00038189
+06: 00052687
+05: 00065772
+04: 00079170
+03: 00081549
+02: 00072547
+01: 00066927
+
+
+---------------------------
+[ SRW ]
+---------------------------
+time = 922
+
+08: 00000067
+07: 00000875
+06: 00005824
+05: 00023854
+04: 00059181
+03: 00095385
+02: 00111268
+01: 00178745
+```
