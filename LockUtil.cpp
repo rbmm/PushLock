@@ -34,8 +34,6 @@ EXTERN_C extern PVOID __imp_AcquireSRWLockExclusive;
 EXTERN_C extern PVOID __imp_AcquireSRWLockShared;
 EXTERN_C extern PVOID __imp_RtlConvertSRWLockExclusiveToShared;
 
-EXTERN_C extern IMAGE_DOS_HEADER __ImageBase;
-
 BOOL SwitchToPushLock()
 {
 	ULONG s;

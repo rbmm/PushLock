@@ -43,7 +43,7 @@
       <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <SDLCheck>false</SDLCheck>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <BuildStlModules>false</BuildStlModules>
@@ -55,7 +55,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <EntryPointSymbol>ep</EntryPointSymbol>
-      <AdditionalDependencies>ntdllp.lib;kernel32.lib;user32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdllp.lib;kernel32.lib;user32.lib;gdi32.lib;comctl32.lib</AdditionalDependencies>
       <AdditionalOptions>/EMITPOGOPHASEINFO</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -64,14 +64,18 @@
     <ClInclude Include="pushlock.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="wlog.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="cmd.cpp" />
+    <ClCompile Include="gui.cpp" />
     <ClCompile Include="LockUtil.cpp" />
     <ClCompile Include="pushlock.cpp" />
     <ClCompile Include="SrwTest.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="wlog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SRW.rc" />

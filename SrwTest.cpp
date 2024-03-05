@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "pushlock.h"
+#include "wlog.h"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 
@@ -22,10 +23,15 @@ struct ThreadTestData
 	SRWLOCK SRWLock = {};
 	LONG numThreads = 1;
 
-	ULONG _nTryCount = 0x10000;
+	ULONG _nTryCount;
+	ULONG _S_E, _R_C;
 	ULONG _nOwnerId = 0;
-	LONG _nSC[8] = {};
+	LONG _nSC[256] = {};
 	LONG _n = 0;
+
+	ThreadTestData(ULONG nLoops, ULONG nS_E, ULONG nR_C) : _nTryCount(nLoops), _S_E(nS_E), _R_C(nR_C)
+	{
+	}
 
 	void EndThread()
 	{
@@ -41,15 +47,17 @@ struct ThreadTestData
 		ULONG Seed = ~GetCurrentThreadId();
 		ULONG MyId = GetCurrentThreadId();
 
+		ULONG S_E = _S_E - 1, R_C = _R_C - 1;
+
 		if (WaitForSingleObject(hStartEvent, INFINITE) != WAIT_OBJECT_0) __debugbreak();
 
 		do 
 		{
-			if (RtlRandomEx(&Seed) & 7)
+			if (RtlRandomEx(&Seed) & S_E)
 			{
 				AcquireSRWLockShared(&SRWLock);
 
-			__s:
+__s:
 				ASSERT(_nOwnerId == 0);
 				LONG m = InterlockedIncrementNoFence(&_n);
 
@@ -76,7 +84,7 @@ struct ThreadTestData
 				ASSERT(_nOwnerId == MyId);
 				_nOwnerId = 0;
 
-				if (!(RtlRandomEx(&Seed) & 3))
+				if (!(RtlRandomEx(&Seed) & R_C))
 				{
 					RtlConvertSRWLockExclusiveToShared(&SRWLock);
 					goto __s;
@@ -96,9 +104,9 @@ struct ThreadTestData
 		return 0;
 	}
 
-	void TestInternal(PCWSTR pszCaption)
+	void TestInternal(ULONG nThreads, PCWSTR pszCaption, WLog& log)
 	{
-		ULONG n = _countof(_nSC), m = 0;
+		ULONG n = nThreads, m = 0;
 
 		do 
 		{
@@ -125,34 +133,27 @@ struct ThreadTestData
 			__debugbreak();
 		}
 
-		wchar_t msg[0x100], *psz = msg;
-		ULONG cch = _countof(msg);
-		int len = swprintf_s(psz, cch, L"time = %I64u\r\n", GetTickCount64() - time);
-		//DbgPrint("time = %I64u\n", GetTickCount64() - time);
-		if (0 < len)
-		{
-			psz += len, cch -= len;
-			do 
-			{
-				--m;
-				if (0 < (len = swprintf_s(psz, cch, L"%02u: %08u\r\n", m + 1, _nSC[m])))
-				{
-					psz += len, cch -= len;
-				}
-				//DbgPrint("%02u: %08u\n", m + 1, _nSC[m]);
-			} while (m);
+		log(L"\r\n%s\r\n\r\ntime = %I64u\r\n", pszCaption, GetTickCount64() - time);
 
-			MessageBoxW(0, msg, pszCaption, MB_ICONINFORMATION);
-		}
+		do 
+		{
+			--m;
+			log(L"%02u: %08u\r\n", m + 1, _nSC[m]);
+		} while (m);
 	}
 
-	void Test(PCWSTR pszCaption)
+	void Test(ULONG nThreads, PCWSTR pszCaption, WLog& log)
 	{
+		if (nThreads >= _countof(_nSC))
+		{
+			return ;
+		}
+
 		if (hStartEvent = CreateEventW(0, TRUE, 0, 0))
 		{
 			if (hStopEvent = CreateEventW(0, TRUE, 0, 0))
 			{
-				TestInternal(pszCaption);
+				TestInternal(nThreads, pszCaption, log);
 
 				CloseHandle(hStopEvent);
 			}
@@ -162,31 +163,48 @@ struct ThreadTestData
 	}
 };
 
-void WINAPI ep(PCWSTR pszCaption)
+void DoSrwTest(WLog& log, ULONG nThreads, ULONG nLoops, ULONG nS_E, ULONG nR_C, PCWSTR pszCaption)
 {
-	ULONG n = 4;
-	do 
-	{
-		switch (n)
-		{
-		case 3:
-			if (SwitchToPushLock())
-			{
-		case 2:
-				pszCaption = L"[ Push ]";
-			}
-			break;
-		case 1:
-			if (SwitchToSRWLock())
-			{
-		case 4:
-				pszCaption = L"[ SRW ]";
-			}
-			break;
-		}
-		ThreadTestData data;
-		data.Test(pszCaption);
-	} while (--n);
+	ThreadTestData data(nLoops, nS_E, nR_C);
+	data.Test(nThreads, pszCaption, log);
+}
 
-	ExitProcess(0);
+BOOL ParseCmdLine(ULONG* pnThreads, ULONG* pnLoops, ULONG* pnS_E, ULONG* pnR_C);
+BOOL CheckValues(WLog& log, ULONG nThreads, ULONG nLoops, ULONG nS_E, ULONG nR_C);
+
+void DoSrwTest(WLog& log)
+{
+	ULONG nThreads = 8, nLoops = 0x10000, nS_E = 8, nR_C = 4;
+
+	if (ParseCmdLine(&nThreads, &nLoops, &nS_E, &nR_C) &&
+		CheckValues(log, nThreads, nLoops, nS_E, nR_C))
+	{
+		PCWSTR pszCaption = 0;
+		ULONG n = 4;
+
+		log(L"Threads=%u Loops=%u shared/exlusive=%u release/convert=%u\r\r\r\n", nThreads , nLoops, nS_E , nR_C);
+		do 
+		{
+			switch (n)
+			{
+			case 3:
+				if (SwitchToPushLock())
+				{
+			case 2:
+				pszCaption = L"[ Push ]";
+				}
+				break;
+			case 1:
+				if (SwitchToSRWLock())
+				{
+			case 4:
+				pszCaption = L"[ SRW ]";
+				}
+				break;
+			}
+
+			DoSrwTest(log, nThreads, nLoops, nS_E, nR_C, pszCaption);
+
+		} while (--n);
+	}
 }

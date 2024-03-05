@@ -28,3 +28,6 @@
 typedef LONG NTSTATUS;
 #endif
 
+EXTERN_C extern IMAGE_DOS_HEADER __ImageBase;
+
+#include <CommCtrl.h>

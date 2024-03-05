@@ -27,6 +27,15 @@
     <ClCompile Include="pushlock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cmd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wlog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -39,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pushlock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wlog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
