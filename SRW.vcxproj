@@ -12,6 +12,7 @@
     <ProjectGuid>{f95abc1d-a3ab-a2d5-2cbd-b04326be59b0}</ProjectGuid>
     <RootNamespace>SRW</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <UserRootDir>$(SolutionDir)MSBuild\v4.0</UserRootDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
