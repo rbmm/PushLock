@@ -41,6 +41,54 @@ struct ThreadTestData
 		}
 	}
 
+	void TestLock(ULONG MyId, BOOL bShared, ULONG R_C, ULONG* pSeed)
+	{
+		if (bShared)
+		{
+			AcquireSRWLockShared(&SRWLock);
+
+		__s:
+			ASSERT(_nOwnerId == 0);
+			LONG m = InterlockedIncrementNoFence(&_n);
+
+			DoSomeTask();
+
+			InterlockedDecrementNoFence(&_n);
+			ReleaseSRWLockShared(&SRWLock);
+
+			InterlockedIncrementNoFence(&_nSC[m - 1]);
+		}
+		else
+		{
+			AcquireSRWLockExclusive(&SRWLock);
+
+			ASSERT(_nOwnerId == 0);
+			ASSERT(_n == 0);
+			_nOwnerId = MyId;
+			_n++;
+
+			DoSomeTask();
+
+			_n--;
+			ASSERT(_n == 0);
+			ASSERT(_nOwnerId == MyId);
+			_nOwnerId = 0;
+
+			if (!(RtlRandomEx(pSeed) & R_C))
+			{
+				RtlConvertSRWLockExclusiveToShared(&SRWLock);
+				goto __s;
+			}
+
+			ReleaseSRWLockExclusive(&SRWLock);
+		}
+	}
+
+	void FillStack()
+	{
+		memset(alloca(0x100), -1, 0x100);
+	}
+
 	void DoStuff()
 	{
 		ULONG n = _nTryCount;
@@ -51,47 +99,10 @@ struct ThreadTestData
 
 		if (WaitForSingleObject(hStartEvent, INFINITE) != WAIT_OBJECT_0) __debugbreak();
 
-		do 
+		do
 		{
-			if (RtlRandomEx(&Seed) & S_E)
-			{
-				AcquireSRWLockShared(&SRWLock);
-
-__s:
-				ASSERT(_nOwnerId == 0);
-				LONG m = InterlockedIncrementNoFence(&_n);
-
-				DoSomeTask();
-
-				InterlockedDecrementNoFence(&_n);
-				ReleaseSRWLockShared(&SRWLock);
-
-				InterlockedIncrementNoFence(&_nSC[m - 1]);
-			}
-			else
-			{
-				AcquireSRWLockExclusive(&SRWLock);
-
-				ASSERT(_nOwnerId == 0);
-				ASSERT(_n == 0);
-				_nOwnerId = MyId;
-				_n++;
-
-				DoSomeTask();
-
-				_n--;
-				ASSERT(_n == 0);
-				ASSERT(_nOwnerId == MyId);
-				_nOwnerId = 0;
-
-				if (!(RtlRandomEx(&Seed) & R_C))
-				{
-					RtlConvertSRWLockExclusiveToShared(&SRWLock);
-					goto __s;
-				}
-
-				ReleaseSRWLockExclusive(&SRWLock);
-			}
+			TestLock(MyId, RtlRandomEx(&Seed) & S_E, R_C, &Seed);
+			FillStack();
 
 		} while (--n);
 
